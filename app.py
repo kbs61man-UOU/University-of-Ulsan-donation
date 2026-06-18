@@ -61,6 +61,7 @@ st.markdown(
         .info-card {{
             background: #f4f8fc; border: 1px solid #d8e6f3; border-radius: 10px;
             padding: 0.9rem 1.1rem; font-size: 0.88rem; color: #33475b; line-height: 1.65;
+            word-break: keep-all;
         }}
         .amount-chip {{
             display: inline-block; margin-top: 0.4rem; padding: 0.3rem 0.8rem;
@@ -97,8 +98,36 @@ def footer() -> None:
 # 발전기금 약정서
 # ══════════════════════════════════════════════
 def render_development_fund() -> None:
-    # 1. 약정 내역 ─ '어디에 쓰이는가'를 먼저
-    section("1. 어디에 마음을 전하시겠어요?", "기부금이 어떤 목적에 쓰일지 선택해 주세요.")
+    # 1. 기부자 정보
+    section("1. 기부자 정보", "영수증 발급과 소식 전달에 필요한 최소한의 정보만 받습니다.")
+    name = st.text_input("이름 (법인명) *", placeholder="홍길동")
+    phone = st.text_input("휴대폰 *", placeholder="010-0000-0000")
+    email = st.text_input("이메일", placeholder="뉴스레터·기부금영수증 안내를 받으실 주소")
+
+    need_receipt = st.checkbox("기부금영수증(연말정산용) 발급을 원합니다.")
+    reg_num = ""
+    if need_receipt:
+        reg_num = st.text_input(
+            "주민(사업자)등록번호",
+            help="기부금영수증 발급 용도로만 사용되며 안전하게 보관됩니다.",
+        )
+
+    with st.expander("주소·직장 정보 입력 (선택)"):
+        cc1, cc2 = st.columns([1, 2])
+        with cc1:
+            zipcode = st.text_input("우편번호")
+        with cc2:
+            addr1 = st.text_input("주소")
+        addr2 = st.text_input("상세주소")
+        company = st.text_input("직장명")
+        cc3, cc4 = st.columns(2)
+        with cc3:
+            work_dept = st.text_input("부서")
+        with cc4:
+            position = st.text_input("직위")
+
+    # 2. 약정 내역 ─ '어디에 쓰이는가'
+    section("2. 어디에 마음을 전하시겠어요?", "기부금이 어떤 목적에 쓰일지 선택해 주세요.")
     fund_purpose = st.radio(
         "기금 용도",
         ["교육여건개선기금", "지정기금"],
@@ -134,8 +163,8 @@ def render_development_fund() -> None:
 """
         )
 
-    # 2. 납부 방법
-    section("2. 어떻게 납부하시겠어요?")
+    # 3. 납부 방법
+    section("3. 어떻게 납부하시겠어요?")
     pay_method = st.radio(
         "납부 방법", ["일시 납부", "정기 납부 (CMS 자동이체)", "교직원 급여공제"]
     )
@@ -179,34 +208,6 @@ def render_development_fund() -> None:
             min_value=datetime.date.today(),
         )
         st.caption("매월 급여에서 약정액이 공제됩니다. 공제 시작 월은 담당 부서에서 안내드립니다.")
-
-    # 3. 기부자 정보
-    section("3. 기부자 정보", "영수증 발급과 소식 전달에 필요한 최소한의 정보만 받습니다.")
-    name = st.text_input("이름 (법인명) *", placeholder="홍길동")
-    phone = st.text_input("휴대폰 *", placeholder="010-0000-0000")
-    email = st.text_input("이메일", placeholder="뉴스레터·기부금영수증 안내를 받으실 주소")
-
-    need_receipt = st.checkbox("기부금영수증(연말정산용) 발급을 원합니다.")
-    reg_num = ""
-    if need_receipt:
-        reg_num = st.text_input(
-            "주민(사업자)등록번호",
-            help="기부금영수증 발급 용도로만 사용되며 안전하게 보관됩니다.",
-        )
-
-    with st.expander("주소·직장 정보 입력 (선택)"):
-        cc1, cc2 = st.columns([1, 2])
-        with cc1:
-            zipcode = st.text_input("우편번호")
-        with cc2:
-            addr1 = st.text_input("주소")
-        addr2 = st.text_input("상세주소")
-        company = st.text_input("직장명")
-        cc3, cc4 = st.columns(2)
-        with cc3:
-            work_dept = st.text_input("부서")
-        with cc4:
-            position = st.text_input("직위")
 
     # 4. 기부 사실 공개 (옵트아웃)
     section(
@@ -345,7 +346,7 @@ def render_supporters_house() -> None:
     }
     quota = st.radio("월 약정금액 (구좌)", list(quota_map.keys()) + ["기타(직접 입력)"])
     if quota == "기타(직접 입력)":
-        monthly_amount = st.number_input("월 약정금액 (원)", min_value=10_000, step=10_000, value=50_000)
+        monthly_amount = st.number_input("월 약정금액 (원)", min_value=50_000, step=50_000, value=50_000)
     else:
         monthly_amount = quota_map[quota]
 
@@ -358,10 +359,10 @@ def render_supporters_house() -> None:
     # 3. 납부 방법 (분할 납부)
     section("3. 납부 방법 (분할 납부)")
     pay_method = st.radio("납부 방법", ["CMS 자동이체", "계좌이체 (직접 자동이체)"])
-    transfer_day = st.selectbox("이체일 (매월)", [f"{d}일" for d in (5, 10, 15, 20, 25)])
 
     cms_bank, cms_holder, cms_account = "", "", ""
     if pay_method == "CMS 자동이체":
+        transfer_day = st.radio("이체일 (매월)", ["15일", "25일"], horizontal=True)
         cms_bank = st.selectbox("거래 은행", BANK_LIST)
         d1, d2 = st.columns(2)
         with d1:
@@ -373,13 +374,14 @@ def render_supporters_house() -> None:
             "직접 은행에 가지 않고 수수료 없이 편리하게 납부됩니다."
         )
     else:
+        transfer_day = st.selectbox("이체일 (매월)", [f"{d}일" for d in (5, 10, 15, 20, 25)])
         st.info(
             "아래 울산대학교 계좌로 매월 이체일에 직접 자동이체해 주세요.\n\n"
             "거래은행 · BNK경남은행 　|　 예금주 · 울산대학교 　|　 계좌번호 · 540-07-0174998"
         )
 
     # 4. 동의 (3종)
-    section("4. 개인정보 및 약정 동의")
+    section("4. 개인정보 수집 및 이용 동의")
 
     st.markdown(
         """
@@ -417,7 +419,7 @@ def render_supporters_house() -> None:
         """
         <div class="info-card">
         <b>기부자 예우 및 학교 소식 안내</b><br>
-        감사카드·홍보책자 등 학교 소식 안내를 위해 SMS·유선전화·이메일이 발송될 수 있으며,
+        감사카드·홍보책자 등 학교 소식 안내를 위해 SMS·유선전화·이메일이 발송될 수 있으며,<br>
         기부자 DB 및 관련 책자에 기부자의 이름이 게재될 수 있습니다.
         </div>
         """,
